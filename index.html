@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyCast — Premium Weather Dashboard</title>
+  <meta name="description" content="SkyCast is a premium weather dashboard with live conditions, forecasts and a dynamic weather-driven interface." />
+
+  <!-- Google Fonts: Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-weather="clear-day" data-theme="light">
+
+  <!-- ============================================================
+       DYNAMIC WEATHER BACKGROUND
+       Layers swap/animate based on the current condition (see script.js)
+       ============================================================ -->
+  <div class="sky" id="sky" aria-hidden="true">
+    <div class="sky__gradient"></div>
+    <div class="sky__stars" id="skyStars"></div>
+    <div class="sky__sun" id="skySun"></div>
+    <div class="sky__clouds" id="skyClouds">
+      <span class="cloud cloud--a"></span>
+      <span class="cloud cloud--b"></span>
+      <span class="cloud cloud--c"></span>
+    </div>
+    <div class="sky__rain" id="skyRain"></div>
+    <div class="sky__lightning" id="skyLightning"></div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- ============================================================
+         NAVIGATION
+         ============================================================ -->
+    <header class="navbar">
+      <div class="navbar__brand">
+        <div class="brand__mark"><i class="fa-solid fa-cloud-sun"></i></div>
+        <span class="brand__name">SkyCast</span>
+      </div>
+
+      <form class="navbar__search" id="searchForm" role="search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input
+          type="text"
+          id="cityInput"
+          placeholder="Search any city…"
+          autocomplete="off"
+          aria-label="Search for a city"
+        />
+        <button type="submit" class="search-submit" aria-label="Search">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="navbar__actions">
+        <button class="icon-btn" id="locateBtn" aria-label="Use my location" title="Use my location">
+          <i class="fa-solid fa-location-crosshairs"></i>
+        </button>
+        <button class="icon-btn" id="refreshBtn" aria-label="Refresh weather" title="Refresh">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="icon-btn navbar__burger" id="navBurger" aria-label="Toggle menu" title="Menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Recent city chips -->
+    <nav class="history-row" id="historyRow" aria-label="Recent searches"></nav>
+
+    <!-- ============================================================
+         MAIN CONTENT
+         ============================================================ -->
+    <main class="main">
+
+      <!-- Loading state -->
+      <div class="state-card glass-panel is-hidden" id="loadingState">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Fetching the latest sky conditions…</p>
+      </div>
+
+      <!-- Error state -->
+      <div class="state-card glass-panel is-hidden" id="errorState">
+        <div class="state-card__icon state-card__icon--error"><i class="fa-solid fa-cloud-bolt"></i></div>
+        <h3>We couldn't find that city</h3>
+        <p id="errorMessage">Double-check the spelling, or try a nearby major city instead.</p>
+        <button class="btn btn--primary" id="errorRetryBtn">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>Try Again</span>
+        </button>
+      </div>
+
+      <!-- Empty / first-load state -->
+      <div class="state-card glass-panel" id="emptyState">
+        <div class="state-card__icon"><i class="fa-solid fa-earth-americas"></i></div>
+        <h3>Search a city to get started</h3>
+        <p>Try "Rawalpindi", "London", or "Tokyo" — or use your current location.</p>
+      </div>
+
+      <!-- ============================================================
+           WEATHER RESULT (hidden until data loads)
+           ============================================================ -->
+      <section class="result is-hidden" id="resultSection">
+
+        <!-- Hero card: primary condition -->
+        <article class="hero-card glass-panel">
+          <div class="hero-card__top">
+            <div class="hero-card__location">
+              <h1 id="cityName">—</h1>
+              <p id="countryName">—</p>
+              <p class="hero-card__datetime" id="localDateTime">—</p>
+            </div>
+            <button class="icon-btn hero-card__refresh" id="heroRefreshBtn" aria-label="Refresh">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+          </div>
+
+          <div class="hero-card__main">
+            <div class="hero-card__icon" id="conditionIcon" aria-hidden="true"></div>
+            <div class="hero-card__temp">
+              <span id="tempValue">—</span><span class="hero-card__unit">°C</span>
+            </div>
+            <div class="hero-card__condition">
+              <p id="conditionText">—</p>
+              <p class="hero-card__feels">Feels like <span id="feelsLikeValue">—</span>°</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Detail grid -->
+        <section class="detail-grid" aria-label="Weather details">
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-droplet"></i>
+            <p class="detail-card__label">Humidity</p>
+            <p class="detail-card__value"><span id="humidityValue">—</span>%</p>
+          </article>
+
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-wind"></i>
+            <p class="detail-card__label">Wind Speed</p>
+            <p class="detail-card__value"><span id="windValue">—</span> km/h</p>
+          </article>
+
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-gauge-high"></i>
+            <p class="detail-card__label">Pressure</p>
+            <p class="detail-card__value"><span id="pressureValue">—</span> mb</p>
+          </article>
+
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-eye"></i>
+            <p class="detail-card__label">Visibility</p>
+            <p class="detail-card__value"><span id="visibilityValue">—</span> km</p>
+          </article>
+
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-sun"></i>
+            <p class="detail-card__label">UV Index</p>
+            <p class="detail-card__value"><span id="uvValue">—</span></p>
+          </article>
+
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-temperature-half"></i>
+            <p class="detail-card__label">Feels Like</p>
+            <p class="detail-card__value"><span id="feelsLikeGridValue">—</span>°</p>
+          </article>
+
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-arrow-up-from-bracket sunrise-icon"></i>
+            <p class="detail-card__label">Sunrise</p>
+            <p class="detail-card__value" id="sunriseValue">—</p>
+          </article>
+
+          <article class="detail-card glass-panel">
+            <i class="fa-solid fa-arrow-down-to-bracket sunset-icon"></i>
+            <p class="detail-card__label">Sunset</p>
+            <p class="detail-card__value" id="sunsetValue">—</p>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>SkyCast · Built by Alishba Umar for the Synent Technologies Web Development Internship</p>
+      <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
